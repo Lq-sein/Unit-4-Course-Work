@@ -1,1 +1,24 @@
+# Linear search (check each item one by one)
+def linear_search(data, target_name):
+    for vendor in data:
+        if vendor["name"] == target_name:
+            return vendor
+    return None
 
+
+# Binary search (data must be sorted first)
+def binary_search(data, target_name):
+    low = 0
+    high = len(data) - 1
+
+    while low <= high:
+        mid = (low + high) // 2
+
+        if data[mid]["name"] == target_name:
+            return data[mid]
+        elif data[mid]["name"] < target_name:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+    return None
