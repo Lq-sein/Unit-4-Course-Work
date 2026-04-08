@@ -22,3 +22,60 @@ def binary_search(data, target_name):
             high = mid - 1
 
     return None
+
+# Bubble sort (simple sorting method)
+def bubble_sort(data):
+    n = len(data)
+
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if data[j]["name"] > data[j + 1]["name"]:
+                temp = data[j]
+                data[j] = data[j + 1]
+                data[j + 1] = temp
+
+    return data
+
+
+# Quick sort (faster sorting)
+def quick_sort(data):
+    if len(data) <= 1:
+        return data
+
+    pivot = data[0]
+    left = []
+    right = []
+
+    for item in data[1:]:
+        if item["name"] <= pivot["name"]:
+            left.append(item)
+        else:
+            right.append(item)
+
+    return quick_sort(left) + [pivot] + quick_sort(right)
+
+
+# Measure how long a function takes
+def measure_time(function, *args):
+    start = time.perf_counter()
+    result = function(*args)
+    end = time.perf_counter()
+
+    print(function.__name__, "time:", end - start)
+
+    return result
+
+
+# Find vendor with most total sales
+def most_productive_vendor(data):
+    totals = {}
+
+    for v in data:
+        name = v["name"]
+
+        if name not in totals:
+            totals[name] = 0
+
+        totals[name] = totals[name] + v["vegan"] + v["meat"]
+
+    return max(totals, key=totals.get)
