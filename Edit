@@ -1,34 +1,77 @@
 import time
-starty = time.time()
+start = time.time()
 
 # Load data from file
-def load_data (filename):
+def load_data(filename):
     vendors = []
 
-with open (filename, "r") as file:
-    for line in file:
-        patts = line.strip().split(",")
+    with open(filename, "r") as file:
+        for line in file:
+            parts = line.strip().split(",")
 
-        vendor = {
-            "id": parts[0],
-            "name": parts[1],
-            "year_week": parts[2],
-            "vegan": int(parta[3]),
-            "meat": int(parts[4]),
-            "onions": float(parts[5]),
-            "ketchup": float(parts[6]),
-        }
+            vendor = {
+                "id": parts[0],
+                "name": parts[1],
+                "year_week": parts[2],
+                "vegan": int(parts[3]),
+                "meat": int(parts[4]),
+                "onions": float(parts[5]),
+                "ketchup": float(parts[6])
+            }
 
-        vendors.append(vendor)
+            vendors.append(vendor)
+
     return vendors
 
+# Validation (checking if the results are false)
+import re
+def validate_vendor(v):
+
+#1. Vendor ID: Two uppercase letters, underscore, three digits (e.g., AB_123)
+    if not re.match(r"^[A-Z]{2}_\d{3}$" , v["id"]):
+        return False, "Invalid Vendor ID: " + str(v["id"])
+
+#2. Vendor Name: 2 to 25 characters long
+    name_length = len(v["name"])
+    if name_length < 2 or name_length > 25:
+        return False, "Invalid Name Length: " + str(v["name"])
+
+#3. Year and Week: yyyww, WW between 1 and 52
+    if len(v["year_week"]) != 6 or not v["year_week"].isdigit():
+        return False, "Invalid Year_Week format: " + str(v["year_week"])
+# Get the last two digits for the week
+    week = int(v["year_week"][4:])
+    if week < 1 or week > 52:
+        return False, "Week out of range: " + str (week)
+
+# 4 & 5. Hotdogs: Must be divisible by 10
+    if v["vegan"] % 10 != 0:
+        return False, "Vegan hotdogs not divisible by 10"
+    if v["meat"] %10 != 0:
+        return False, "Meat hotdogs not divisible by 10"
+
+#6. Onions: Decimal in 0.5kg increments
+    if (v["onions"] * 2) % 1 != 0:
+        return False, "Onions not in 0.5kg increments"
+
+#7. Ketchup: Integer between 1 and 4
+    if v["ketchup"] < 1 or v["ketchup"] > 4 or v ["ketchup"] % 1 != 0:
+        return False, "Ketchup must be integer 1-4"
+
+    return True, ""
+
 # Linear search (check each item one by one)
-def linear_search(data, target_name):
+def linear_search_unsorted(data, target_name):
     for vendor in data:
         if vendor["name"] == target_name:
             return vendor
     return None
 
+def linear_search_sorted(data, target_name):
+    for vendor in data:
+        if vendor["name"] == target_name:
+            return vendor
+    return None
 
 # Binary search (data must be sorted first)
 def binary_search(data, target_name):
@@ -60,7 +103,6 @@ def bubble_sort(data):
 
     return data
 
-
 # Quick sort (faster sorting)
 def quick_sort(data):
     if len(data) <= 1:
@@ -77,7 +119,6 @@ def quick_sort(data):
             right.append(item)
 
     return quick_sort(left) + [pivot] + quick_sort(right)
-
 
 # Measure how long a function takes
 def measure_time(function, *args):
@@ -104,21 +145,24 @@ def most_productive_vendor(data):
 
     return max(totals, key=totals.get)
 
+
 # Count total vegan and meat hotdogs
 def vegan_vs_meat(data):
     vegan_total = 0
-    vegan_total = 0
+    meat_total = 0
 
     for v in data:
         vegan_total += v["vegan"]
         meat_total += v["meat"]
+
     return vegan_total, meat_total
+
 
 # Find the smallest ketchup value
 def least_ketchup(data):
     smallest = data[0]
 
-for v in data:
+    for v in data:
         if v["ketchup"] < smallest["ketchup"]:
             smallest = v
 
@@ -133,10 +177,41 @@ def save_results(filename, results):
 
 
 # MAIN PROGRAM
-vendors = load_data("HotDogs.txt")
+all_loaded_vendors = load_data("HotDogs.txt")
+
+
+# 2. Perform Validation and Count Truths
+vendors = []        # This will hold only the records that pass validation
+valid_count = 0     # Counter for True validations
+invalid_count = 0   # Counter for False validations
+
+print("--- Starting Validation ---")
+
+# We loop through every item we just loaded from the file
+for v in all_loaded_vendors:
+    # Call your validation function for the current vendor 'v'
+        is_valid, error_msg = validate_vendor(v)
+    
+        if is_valid:
+        # If True, add to our final list and increment the valid counter
+            vendors.append(v)
+            valid_count += 1
+        else:
+        # If False, increment the invalid counter and print the reason
+            invalid_count += 1
+            print("Skipping Vendor " + str(v["id"]) + ": " + error_msg)
+
+# Display the counts to the user
+print("\nValidation Summary:")
+print("Valid records: " + str(valid_count))
+print("Invalid records: " + str(invalid_count))
+
+# 3. Process the clean data
+# Now the rest of your code uses the 'vendors' list (the valid ones)
+if len(vendors) > 0:
 
 # Sort data
-sorted_vendors = measure_time(quick_sort, vendors.copy())
+    sorted_vendors = measure_time(quick_sort, vendors.copy())
 
 # Search
 result = binary_search(sorted_vendors, "Delly Dogs")
@@ -145,7 +220,7 @@ print(result)
 
 # Compare searches
 print("\nSearch Comparison:")
-measure_time(linear_search, vendors, "Delly Dogs")
+measure_time(linear_search_unsorted, vendors, "Delly Dogs")
 measure_time(binary_search, sorted_vendors, "Delly Dogs")
 
 # Compare sorting
