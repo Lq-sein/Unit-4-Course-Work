@@ -126,7 +126,11 @@ def measure_time(function, *args):
     result = function(*args)
     end = time.perf_counter()
 
-    print(function.__name__, "time:", end - start)
+    # Calculate the elsaped time and round it to 8 decimal places
+
+    elapsed_time = round(end - start, 8)
+
+    print(function.__name__, "time:", elapsed_time)
 
     return result
 
@@ -143,7 +147,7 @@ def most_productive_vendor(data):
 
         totals[name] = totals[name] + v["vegan"] + v["meat"]
 
-    return max(totals, key=totals.get)
+    return max(totals, key = totals.get)
 
 
 # Count total vegan and meat hotdogs
@@ -178,6 +182,7 @@ def save_results(filename, results):
 
 # MAIN PROGRAM
 all_loaded_vendors = load_data("HotDogs.txt")
+target = input("Enter vendor ID to search:")
 
 
 # 2. Perform Validation and Count Truths
