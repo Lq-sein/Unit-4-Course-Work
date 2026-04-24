@@ -182,7 +182,7 @@ def save_results(filename, results):
 
 # MAIN PROGRAM
 all_loaded_vendors = load_data("HotDogs.txt")
-target = input("Enter vendor ID to search:")
+target = input("Enter vendor ID to search:").lower()
 
 
 # 2. Perform Validation and Count Truths
