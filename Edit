@@ -1,253 +1,190 @@
 import time
-start = time.time()
+import re
 
 # Load data from file
 def load_data(filename):
     vendors = []
-
-    with open(filename, "r") as file:
-        for line in file:
-            parts = line.strip().split(",")
-
-            vendor = {
-                "id": parts[0],
-                "name": parts[1],
-                "year_week": parts[2],
-                "vegan": int(parts[3]),
-                "meat": int(parts[4]),
-                "onions": float(parts[5]),
-                "ketchup": float(parts[6])
-            }
-
-            vendors.append(vendor)
-
+    try:
+        with open(filename, "r") as file:
+            for line in file:
+                parts = line.strip().split(",")
+                if len(parts) < 7: continue 
+                vendor = {
+                    "id": parts[0],
+                    "name": parts[1],
+                    "year_week": parts[2],
+                    "vegan": int(parts[3]),
+                    "meat": int(parts[4]),
+                    "onions": float(parts[5]),
+                    "ketchup": float(parts[6])
+                }
+                vendors.append(vendor)
+    except FileNotFoundError:
+        print("Error: " + filename + " not found.")
     return vendors
-
-# Validation (checking if the results are false)
-import re
+# FIX: VALIDATION
 def validate_vendor(v):
-
-#1. Vendor ID: Two uppercase letters, underscore, three digits (e.g., AB_123)
-    if not re.match(r"^[A-Z]{2}_\d{3}$" , v["id"]):
+    if not re.match(r"^[A-Z]{2}_\d{3}$", v["id"]):
         return False, "Invalid Vendor ID: " + str(v["id"])
-
-#2. Vendor Name: 2 to 25 characters long
-    name_length = len(v["name"])
-    if name_length < 2 or name_length > 25:
+    if not (2 <= len(v["name"]) <= 25):
         return False, "Invalid Name Length: " + str(v["name"])
-
-#3. Year and Week: yyyww, WW between 1 and 52
     if len(v["year_week"]) != 6 or not v["year_week"].isdigit():
         return False, "Invalid Year_Week format: " + str(v["year_week"])
-# Get the last two digits for the week
     week = int(v["year_week"][4:])
     if week < 1 or week > 52:
-        return False, "Week out of range: " + str (week)
-
-# 4 & 5. Hotdogs: Must be divisible by 10
-    if v["vegan"] % 10 != 0:
-        return False, "Vegan hotdogs not divisible by 10"
-    if v["meat"] %10 != 0:
-        return False, "Meat hotdogs not divisible by 10"
-
-#6. Onions: Decimal in 0.5kg increments
+        return False, "Week out of range: " + str(week)
+    if v["vegan"] % 10 != 0 or v["meat"] % 10 != 0:
+        return False, "Hotdogs not divisible by 10"
     if (v["onions"] * 2) % 1 != 0:
         return False, "Onions not in 0.5kg increments"
-
-#7. Ketchup: Integer between 1 and 4
-    if v["ketchup"] < 1 or v["ketchup"] > 4 or v ["ketchup"] % 1 != 0:
+    if not (1 <= v["ketchup"] <= 4):
         return False, "Ketchup must be integer 1-4"
-
     return True, ""
 
-# Linear search (check each item one by one)
-def linear_search_unsorted(data, target_name):
+# FIX: Changed search target to check ["id"] instead of ["name"]
+def linear_search_unsorted(data, target_id):
     for vendor in data:
-        if vendor["name"] == target_name:
+        if vendor["id"] == target_id:
             return vendor
     return None
 
-def linear_search_sorted(data, target_name):
+def linear_search_sorted(data, target_id):
     for vendor in data:
-        if vendor["name"] == target_name:
+        if vendor["id"] == target_id:
             return vendor
+        elif vendor["id"] > target_id:
+            break 
     return None
 
-# Binary search (data must be sorted first)
-def binary_search(data, target_name):
+# FIX: Changed binary search logic to use ["id"] to match user input
+def binary_search(data, target_id):
     low = 0
     high = len(data) - 1
-
     while low <= high:
         mid = (low + high) // 2
-
-        if data[mid]["name"] == target_name:
+        if data[mid]["id"] == target_id:
             return data[mid]
-        elif data[mid]["name"] < target_name:
+        elif data[mid]["id"] < target_id:
             low = mid + 1
         else:
             high = mid - 1
-
     return None
 
-# Bubble sort (simple sorting method)
+# FIX: Changed bubble sort to sort by ["id"] so Binary Search works
 def bubble_sort(data):
     n = len(data)
-
     for i in range(n):
         for j in range(0, n - i - 1):
-            if data[j]["name"] > data[j + 1]["name"]:
-                temp = data[j]
-                data[j] = data[j + 1]
-                data[j + 1] = temp
-
+            if data[j]["id"] > data[j + 1]["id"]:
+                data[j], data[j + 1] = data[j + 1], data[j]
     return data
 
-# Quick sort (faster sorting)
+# FIX: Changed quick sort to sort by ["id"]
 def quick_sort(data):
     if len(data) <= 1:
         return data
-
     pivot = data[0]
-    left = []
-    right = []
-
-    for item in data[1:]:
-        if item["name"] <= pivot["name"]:
-            left.append(item)
-        else:
-            right.append(item)
-
+    left = [x for x in data[1:] if x["id"] <= pivot["id"]]
+    right = [x for x in data[1:] if x["id"] > pivot["id"]]
     return quick_sort(left) + [pivot] + quick_sort(right)
 
-# Measure how long a function takes
 def measure_time(function, *args):
     start = time.perf_counter()
     result = function(*args)
     end = time.perf_counter()
-
-    # Calculate the elsaped time and round it to 8 decimal places
-
     elapsed_time = round(end - start, 8)
-
-    print(function.__name__, "time:", elapsed_time)
-
+    print(function.__name__ + " time: " + str(elapsed_time))
     return result
 
-
-# Find vendor with most total sales
 def most_productive_vendor(data):
     totals = {}
-
     for v in data:
         name = v["name"]
-
         if name not in totals:
             totals[name] = 0
-
         totals[name] = totals[name] + v["vegan"] + v["meat"]
+    return max(totals, key=totals.get)
 
-    return max(totals, key = totals.get)
-
-
-# Count total vegan and meat hotdogs
 def vegan_vs_meat(data):
-    vegan_total = 0
-    meat_total = 0
-
+    v_total = 0
+    m_total = 0
     for v in data:
-        vegan_total += v["vegan"]
-        meat_total += v["meat"]
+        v_total += v["vegan"]
+        m_total += v["meat"]
+    return v_total, m_total
 
-    return vegan_total, meat_total
-
-
-# Find the smallest ketchup value
 def least_ketchup(data):
     smallest = data[0]
-
     for v in data:
         if v["ketchup"] < smallest["ketchup"]:
             smallest = v
-
     return smallest
 
-
-# Save results to a file
 def save_results(filename, results):
     file = open(filename, "w")
     file.write(results)
     file.close()
 
-
 # MAIN PROGRAM
 all_loaded_vendors = load_data("HotDogs.txt")
-target = input("Enter vendor ID to search:").lower()
 
+# FIX: Added .upper() to ensure input matches Regex (AB_123) 
+target = input("Enter vendor ID to search: ").upper()
 
-# 2. Perform Validation and Count Truths
-vendors = []        # This will hold only the records that pass validation
-valid_count = 0     # Counter for True validations
-invalid_count = 0   # Counter for False validations
+vendors = []
+valid_count = 0
+invalid_count = 0
 
 print("--- Starting Validation ---")
-
-# We loop through every item we just loaded from the file
 for v in all_loaded_vendors:
-    # Call your validation function for the current vendor 'v'
-        is_valid, error_msg = validate_vendor(v)
-    
-        if is_valid:
-        # If True, add to our final list and increment the valid counter
-            vendors.append(v)
-            valid_count += 1
-        else:
-        # If False, increment the invalid counter and print the reason
-            invalid_count += 1
-            print("Skipping Vendor " + str(v["id"]) + ": " + error_msg)
+    is_valid, error_msg = validate_vendor(v)
+    if is_valid:
+        vendors.append(v)
+        valid_count += 1
+    else:
+        invalid_count += 1
+        print("Skipping Vendor " + str(v["id"]) + ": " + error_msg)
 
-# Display the counts to the user
 print("\nValidation Summary:")
 print("Valid records: " + str(valid_count))
 print("Invalid records: " + str(invalid_count))
 
-# 3. Process the clean data
-# Now the rest of your code uses the 'vendors' list (the valid ones)
+# FIX: Indented all analysis code to be inside this IF block 
 if len(vendors) > 0:
-
-# Sort data
+    # Sort data
     sorted_vendors = measure_time(quick_sort, vendors.copy())
 
-# Search
-result = binary_search(sorted_vendors, "Delly Dogs")
-print("\nBinary Search Result:")
-print(result)
+    # Search
+    print("\nBinary Search Result:")
+    result = binary_search(sorted_vendors, target)
+    print(result)
 
-# Compare searches
-print("\nSearch Comparison:")
-measure_time(linear_search_unsorted, vendors, "Delly Dogs")
-measure_time(binary_search, sorted_vendors, "Delly Dogs")
+    # Compare searches
+    print("\nSearch Comparison:")
+    measure_time(linear_search_unsorted, vendors, target)
+    measure_time(binary_search, sorted_vendors, target)
 
-# Compare sorting
-print("\nSorting Comparison:")
-measure_time(bubble_sort, vendors.copy())
-measure_time(quick_sort, vendors.copy())
+    # Compare sorting
+    print("\nSorting Comparison:")
+    measure_time(bubble_sort, vendors.copy())
+    measure_time(quick_sort, vendors.copy())
 
-# Analysis
-best_vendor = most_productive_vendor(vendors)
-vegan, meat = vegan_vs_meat(vendors)
-least = least_ketchup(vendors)
+    # Analysis
+    best_vendor = most_productive_vendor(vendors)
+    vegan, meat = vegan_vs_meat(vendors)
+    least = least_ketchup(vendors)
 
-print("\nResults:")
-print("Best vendor:", best_vendor)
-print("Vegan total:", vegan)
-print("Meat total:", meat)
-print("Least ketchup:", least["name"])
+    print("\nResults:")
+    print("Best vendor: " + best_vendor)
+    print("Vegan total: " + str(vegan))
+    print("Meat total: " + str(meat))
+    print("Least ketchup: " + least["name"])
 
-# Save results
-results = "Most productive vendor: " + best_vendor + "\n"
-results += "Total vegan hotdogs: " + str(vegan) + "\n"
-results += "Total meat hotdogs: " + str(meat) + "\n"
-results += "Vendor using least ketchup: " + least["name"]
+    # Save results
+    results = "Most productive vendor: " + best_vendor + "\n"
+    results += "Total vegan hotdogs: " + str(vegan) + "\n"
+    results += "Total meat hotdogs: " + str(meat) + "\n"
+    results += "Vendor using least ketchup: " + least["name"]
+    
+    save_results("Analysis.txt", results)
 
-save_results("Analysis.txt", results)
